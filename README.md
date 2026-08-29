@@ -4,7 +4,7 @@
 
 **Live:** https://nikhilr23.github.io/convertlab/
 
-ConvertLab is a lightweight conversion toolkit for common image, structured-data, and PDF-generation tasks that can be handled locally in a modern browser.
+ConvertLab is a lightweight conversion toolkit for common image, structured-data, and PDF tasks handled locally in a modern browser.
 
 > **Your file → your browser → your download**
 
@@ -21,88 +21,74 @@ ConvertLab is a lightweight conversion toolkit for common image, structured-data
 ### Batch image tools
 - Multiple supported images per session
 - Shared format/resize settings
-- Sequential processing to reduce avoidable memory spikes
+- Sequential processing
 - Independent status and download per file
-- Per-file failure isolation
 
-### Images → PDF — Stage 4 (QA-ready)
-- Combine up to 30 JPG / PNG / WebP / SVG images into one PDF
-- Reorder or remove pages before generation
-- A4 or US Letter page size
-- Portrait or landscape orientation
-- Fit-entire-image or fill-page/crop behavior
-- Standard, small, or zero margins
-- Sequential source-image processing
-- Local PDF generation in the page using jsPDF
-- Single downloadable PDF output
+### Images → PDF — Stage 4
+- Up to 30 JPG / PNG / WebP / SVG images
+- Reorder/remove pages
+- A4 or Letter, portrait or landscape
+- Contain/cover and margin controls
+- Local generation with jsPDF
+
+### PDF → Images — Stage 4.2 (built; QA next)
+- One local PDF up to 30 MB and 60 pages
+- Render all pages or ranges such as `1-3,5`
+- PNG or JPG output
+- Standard, high, or very-high raster scale
+- Adjustable JPG quality
+- Sequential page rendering with independent downloads
+- Duplicate-safe page-number filenames such as `document-page-001.png`
+- 24-million-pixel per-render guardrail
+- Clear corrupt/password-protected PDF handling
+- Local PDF parsing/rendering using PDF.js
 
 ### Data tools
 - CSV → JSON and JSON → CSV
-- Copy output or download `.json` / `.csv`
+- Copy or download `.json` / `.csv`
 - 1 MB pasted-data guardrail
 
 ## Privacy architecture
 
-For the current conversion workflows, selected source files are processed by client-side JavaScript and are not intentionally uploaded to a ConvertLab conversion server. ConvertLab has no application backend, account system, or database.
+Selected source files are processed by client-side JavaScript and are not intentionally uploaded to a ConvertLab conversion server. ConvertLab has no application backend, account system, or database.
 
-Stage 4 adds a third-party JavaScript dependency: **jsPDF 2.5.2**, loaded in the browser from jsDelivr. The library code is fetched from the CDN; selected source images are processed locally by the page and are not sent to that CDN by ConvertLab.
+PDF workflows load pinned browser libraries from jsDelivr: **jsPDF 2.5.2** for Images → PDF and **PDF.js 4.10.38** for PDF → Images. Library code/worker code is fetched from the CDN; the selected source files remain local to the page.
 
-Privacy messaging must be revisited if analytics, uploads, external processing, or server-side conversion are added later.
+## Stage 4.2 defensive behavior
 
-## QA & defensive behavior
+PDF → Images limits input to 30 MB and 60 pages, validates PDF-like input, parses page ranges, renders requested pages sequentially, caps each rendered canvas at 24 million pixels, cleans temporary object URLs, cleans PDF.js pages after rendering, and destroys the loaded PDF when cleared/unloaded.
 
-Static Stage 4 QA found and fixed a deployment-risk issue in the initial jsPDF tag: the hard-coded integrity metadata could prevent the CDN dependency from loading if it did not exactly match the published asset. Stage 4 now loads the pinned jsPDF 2.5.2 asset without that brittle integrity declaration and retains an explicit runtime error if the library is unavailable.
-
-The implementation includes MIME-type checks, 25 MB per-image limits, 12,000 px source/output dimension checks, a 30-image PDF limit, sequential batch/PDF processing, safe text-only filename rendering, temporary object-URL cleanup, and defensive CSV/JSON validation.
-
-For PDF generation, source images are rasterized to JPEG with a longest-side working resolution capped at 2,400 px before insertion. This reduces PDF size and browser-memory pressure, but it also means Stage 4 is designed for convenient image PDFs rather than archival or print-production fidelity.
-
-The Stage 4 code path has been statically reviewed for selection limits, unsupported/oversized files, page ordering/removal, A4/Letter, portrait/landscape, contain/cover math, margin handling, PDF-library failure, output naming, temporary URL cleanup, and sequential processing. **Representative real-file, cross-browser interaction cannot be truthfully certified through the GitHub connector alone**, so Issue #2 remains the manual release gate.
+Password-protected PDFs are explicitly unsupported in this MVP. OCR, password removal, text editing, merge, and split are not part of Stage 4.2.
 
 ## Technical decisions
 
-- **Vanilla JavaScript** for the application logic
-- **Canvas API** for raster conversion/resizing
-- **File / Blob / Object URL APIs** for local files/downloads
-- **jsPDF 2.5.2** for browser-side PDF generation
-- **Sequential processing** instead of full-resolution parallel processing
-- **GitHub Pages** for static hosting
-
-## Tech stack
-
-`HTML` · `CSS` · `JavaScript` · `Canvas API` · `File API` · `Blob API` · `jsPDF` · `GitHub Pages`
-
-## Current limitations
-
-- Stage 4 requires the jsPDF CDN script to load before PDF generation is available.
-- Images are rasterized for PDF output; SVG/vector fidelity is not preserved.
-- The PDF working raster is capped at 2,400 px on the longest side.
-- Fill-page mode can intentionally crop image edges.
-- Up to 30 source images are accepted per generated PDF.
-- Large decoded images can still consume substantial browser memory even when compressed files are below 25 MB.
-- SVG rendering can vary by browser and SVG contents.
-- PDF → image, PDF merging, splitting, Office documents, audio/video, OCR, and generative AI are not implemented.
+- Vanilla HTML/CSS/JavaScript
+- Canvas API for raster image output
+- File / Blob / Object URL APIs
+- jsPDF 2.5.2 for Images → PDF
+- PDF.js 4.10.38 for PDF → Images
+- Sequential processing rather than parallel full-resolution work
+- GitHub Pages static hosting
 
 ## Feature sequence
 
-### 1. Better image workflow — shipped
-Drag-and-drop, aspect-ratio lock, file/dimension guardrails, safer URL cleanup.
+1. Better image workflow — **shipped**
+2. Real data downloads — **shipped**
+3. Batch image conversion — **shipped**
+4. Images → PDF — **shipped**
+5. PDF → Images — **built; QA next**
 
-### 2. Real data downloads — shipped
-Download converted JSON and CSV files.
+After Stage 4.2 QA, evaluate **Merge PDFs** separately rather than bundling merge/split into this release.
 
-### 3. Batch image conversion — shipped
-Multiple images, sequential processing, per-file status/download, failure isolation.
+## Current limitations
 
-### 4. Images → PDF — QA-ready
-Ordered image pages, A4/Letter, portrait/landscape, contain/cover, margin controls, local PDF output. Static QA complete; real-file browser QA remains the release gate.
-
-### Next PDF candidates — ready for prioritization after Stage 4 manual gate
-1. **PDF → images** — strongest next utility because it complements Images → PDF and can remain local-first.
-2. **Merge PDFs** — useful, but needs careful memory and dependency evaluation.
-3. **Split/extract pages** — useful companion to merge once PDF input handling is proven.
-
-Do not add all three at once. The recommended next implementation is **PDF → images**, after Issue #2's real-file checks are completed.
+- PDF features require their CDN libraries/worker to load.
+- PDF → Images rasterizes pages; it does not preserve editable/vector PDF structure.
+- Password-protected PDFs are not supported.
+- Maximum PDF input is 30 MB / 60 pages.
+- Very complex PDFs can still use substantial browser memory.
+- PDF → Images has not yet been certified across a full browser/device matrix.
+- Merge/split, Office documents, audio/video, OCR, and generative AI are not implemented.
 
 ## Product principle
 
