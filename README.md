@@ -19,6 +19,16 @@ ConvertLab is a lightweight conversion toolkit for common image and structured-d
 - Adjustable JPG/WebP quality
 - 25 MB input guardrail and 12,000 px dimension guardrail
 
+### Batch image tools
+- Select or drag multiple supported images
+- Convert PNG / JPG / WebP / SVG inputs to one chosen raster output format
+- Optional batch resize settings
+- Preserve each source image's aspect ratio
+- Sequential processing to reduce avoidable browser-memory spikes
+- Independent status for each file
+- Independent download for every successful conversion
+- Unsupported, oversized, or corrupt files do not stop the rest of the batch
+
 ### Data tools
 - CSV → JSON
 - JSON → CSV
@@ -47,8 +57,10 @@ The privacy messaging must be updated if future versions add analytics, third-pa
 The current implementation includes:
 - MIME-type checks for supported images;
 - image-size and output-dimension limits to reduce browser memory risk;
-- cleanup of temporary object URLs;
-- safe text-only status/error rendering;
+- sequential batch conversion instead of parallel full-resolution conversion;
+- independent per-file batch errors so one bad file does not abort the queue;
+- cleanup of temporary object URLs when results are cleared or the page unloads;
+- safe text-only filename, status, and error rendering;
 - filename sanitization for generated image downloads;
 - CSV checks for unclosed quoted fields, empty/duplicate headers, and rows wider than the header;
 - JSON validation requiring a non-empty array of objects;
@@ -61,6 +73,7 @@ This is static code QA and defensive validation. Cross-browser interactive testi
 - **Vanilla JavaScript** keeps the release lightweight.
 - **Canvas API** handles supported raster image conversion and resizing.
 - **File / Blob / Object URL APIs** enable local file handling and downloads.
+- **Sequential batch processing** favors browser stability over maximum parallel throughput.
 - **GitHub Pages** provides static hosting.
 - **No AI or backend** is used where deterministic browser APIs already solve the problem.
 
@@ -75,13 +88,16 @@ Clone or download the repository and open `index.html` in a modern browser. No b
 ## Current limitations
 
 - Large decoded images can still consume substantial browser memory even when the source file is under 25 MB.
+- Batch processing is sequential, but successful output blobs remain available until the batch is cleared or the page unloads so users can download them individually.
+- Browsers may limit or prompt around many separate downloads; ConvertLab does not silently auto-download every batch result.
+- Duplicate source basenames can produce duplicate suggested output filenames; each result remains a separate download.
 - SVG rendering can vary by browser and SVG contents.
 - Aspect-ratio lock uses the source image ratio; turning it off allows deliberate stretching.
 - CSV parsing supports quoted fields and escaped quotes but is not intended to replace a full spreadsheet parser.
 - JSON → CSV expects a non-empty array of objects; nested values are serialized as JSON strings.
 - Complex Office document, PDF, audio, video, OCR, and generative-AI workflows are not part of this release.
 
-## Next feature sequence
+## Feature sequence
 
 ### 1. Better image workflow — shipped
 - Drag-and-drop
@@ -93,10 +109,11 @@ Clone or download the repository and open `index.html` in a modern browser. No b
 - Download CSV → JSON output as `.json`
 - Download JSON → CSV output as `.csv`
 
-### 3. Batch image conversion — next
+### 3. Batch image conversion — shipped
 - Multiple compatible images in one session
 - Per-file status and download
-- Memory-aware processing rather than converting every file simultaneously
+- Sequential memory-aware processing
+- Per-file failure isolation
 
 ### 4. PDF & image utilities — later
 - Research image → PDF using browser-local libraries
