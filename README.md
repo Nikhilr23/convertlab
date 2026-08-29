@@ -13,13 +13,18 @@ ConvertLab is a lightweight conversion toolkit for common image and structured-d
 ### Image tools
 - PNG / JPG / WebP / SVG input
 - PNG, JPG, or WebP output
+- Drag-and-drop or file picker
 - Image resizing
+- Optional aspect-ratio lock
 - Adjustable JPG/WebP quality
+- 25 MB input guardrail and 12,000 px dimension guardrail
 
 ### Data tools
 - CSV → JSON
 - JSON → CSV
-- Copy converted output directly from the browser
+- Copy converted output
+- Download converted `.json` and `.csv` files
+- 1 MB pasted-data guardrail for browser responsiveness
 
 ## Why I built it
 
@@ -30,7 +35,6 @@ The goal is not to claim support for every possible file type. It is to make com
 ## Privacy architecture
 
 For the current tools:
-
 - selected files are processed by client-side JavaScript;
 - there is no ConvertLab application backend;
 - there is no account system or database;
@@ -38,11 +42,23 @@ For the current tools:
 
 The privacy messaging must be updated if future versions add analytics, third-party processing, uploads, or server-side conversion.
 
+## QA & defensive behavior
+
+The current implementation includes:
+- MIME-type checks for supported images;
+- image-size and output-dimension limits to reduce browser memory risk;
+- cleanup of temporary object URLs;
+- safe text-only status/error rendering;
+- filename sanitization for generated image downloads;
+- CSV checks for unclosed quoted fields, empty/duplicate headers, and rows wider than the header;
+- JSON validation requiring a non-empty array of objects;
+- graceful clipboard fallback when the Clipboard API is unavailable.
+
+This is static code QA and defensive validation. Cross-browser interactive testing with representative real files is still recommended before treating every edge case as verified.
+
 ## Technical decisions
 
-ConvertLab deliberately starts small:
-
-- **Vanilla JavaScript** keeps the first release lightweight.
+- **Vanilla JavaScript** keeps the release lightweight.
 - **Canvas API** handles supported raster image conversion and resizing.
 - **File / Blob / Object URL APIs** enable local file handling and downloads.
 - **GitHub Pages** provides static hosting.
@@ -58,24 +74,36 @@ Clone or download the repository and open `index.html` in a modern browser. No b
 
 ## Current limitations
 
-- Large images can consume significant browser memory.
+- Large decoded images can still consume substantial browser memory even when the source file is under 25 MB.
 - SVG rendering can vary by browser and SVG contents.
-- Resizing currently accepts explicit width and height values rather than automatically locking aspect ratio.
+- Aspect-ratio lock uses the source image ratio; turning it off allows deliberate stretching.
 - CSV parsing supports quoted fields and escaped quotes but is not intended to replace a full spreadsheet parser.
 - JSON → CSV expects a non-empty array of objects; nested values are serialized as JSON strings.
 - Complex Office document, PDF, audio, video, OCR, and generative-AI workflows are not part of this release.
 
-## Roadmap
+## Next feature sequence
 
-Potential additions should be validated before implementation:
-
-- Drag-and-drop and batch image conversion
+### 1. Better image workflow — shipped
+- Drag-and-drop
 - Aspect-ratio lock
-- Downloadable CSV/JSON output files
-- TXT ↔ Markdown utilities
-- Additional image optimization controls
-- Browser-local PDF utilities where conversion is reliable
-- Separate document, audio/video, and AI tool tracks only when their infrastructure requirements justify them
+- File-size and dimension guardrails
+- Safer temporary URL cleanup
+
+### 2. Real data downloads — shipped
+- Download CSV → JSON output as `.json`
+- Download JSON → CSV output as `.csv`
+
+### 3. Batch image conversion — next
+- Multiple compatible images in one session
+- Per-file status and download
+- Memory-aware processing rather than converting every file simultaneously
+
+### 4. PDF & image utilities — later
+- Research image → PDF using browser-local libraries
+- Validate memory, browser compatibility, and bundle-size tradeoffs before shipping
+
+### 5. Heavier conversion tracks — only if justified
+Office documents, audio/video, OCR, and AI tools should be separate capability tracks because they may require WebAssembly, server infrastructure, third-party APIs, usage limits, or cost controls.
 
 ## Product principle
 
