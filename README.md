@@ -25,9 +25,9 @@ ConvertLab is a lightweight conversion toolkit for common image, structured-data
 - Independent status and download per file
 - Per-file failure isolation
 
-### Images → PDF — Stage 4
+### Images → PDF — Stage 4 (QA-ready)
 - Combine up to 30 JPG / PNG / WebP / SVG images into one PDF
-- Reorder pages before generation
+- Reorder or remove pages before generation
 - A4 or US Letter page size
 - Portrait or landscape orientation
 - Fit-entire-image or fill-page/crop behavior
@@ -45,17 +45,19 @@ ConvertLab is a lightweight conversion toolkit for common image, structured-data
 
 For the current conversion workflows, selected source files are processed by client-side JavaScript and are not intentionally uploaded to a ConvertLab conversion server. ConvertLab has no application backend, account system, or database.
 
-Stage 4 adds a third-party JavaScript dependency: **jsPDF 2.5.2**, loaded in the browser from jsDelivr with Subresource Integrity and CORS attributes. The library code is fetched from the CDN; selected source images are processed locally by the page and are not sent to that CDN by ConvertLab.
+Stage 4 adds a third-party JavaScript dependency: **jsPDF 2.5.2**, loaded in the browser from jsDelivr. The library code is fetched from the CDN; selected source images are processed locally by the page and are not sent to that CDN by ConvertLab.
 
 Privacy messaging must be revisited if analytics, uploads, external processing, or server-side conversion are added later.
 
 ## QA & defensive behavior
 
-The implementation includes MIME-type checks, 25 MB per-image limits, 12,000 px source/output dimension checks, sequential batch/PDF processing, safe text-only filename rendering, temporary object-URL cleanup, and defensive CSV/JSON validation.
+Static Stage 4 QA found and fixed a deployment-risk issue in the initial jsPDF tag: the hard-coded integrity metadata could prevent the CDN dependency from loading if it did not exactly match the published asset. Stage 4 now loads the pinned jsPDF 2.5.2 asset without that brittle integrity declaration and retains an explicit runtime error if the library is unavailable.
+
+The implementation includes MIME-type checks, 25 MB per-image limits, 12,000 px source/output dimension checks, a 30-image PDF limit, sequential batch/PDF processing, safe text-only filename rendering, temporary object-URL cleanup, and defensive CSV/JSON validation.
 
 For PDF generation, source images are rasterized to JPEG with a longest-side working resolution capped at 2,400 px before insertion. This reduces PDF size and browser-memory pressure, but it also means Stage 4 is designed for convenient image PDFs rather than archival or print-production fidelity.
 
-Stage 3's main batch workflow has been manually exercised with representative real images. Stage 4 should receive the same real-file browser QA before broader PDF features are added.
+The Stage 4 code path has been statically reviewed for selection limits, unsupported/oversized files, page ordering/removal, A4/Letter, portrait/landscape, contain/cover math, margin handling, PDF-library failure, output naming, temporary URL cleanup, and sequential processing. **Representative real-file, cross-browser interaction cannot be truthfully certified through the GitHub connector alone**, so Issue #2 remains the manual release gate.
 
 ## Technical decisions
 
@@ -89,18 +91,18 @@ Drag-and-drop, aspect-ratio lock, file/dimension guardrails, safer URL cleanup.
 ### 2. Real data downloads — shipped
 Download converted JSON and CSV files.
 
-### 3. Batch image conversion — shipped & manually exercised
+### 3. Batch image conversion — shipped
 Multiple images, sequential processing, per-file status/download, failure isolation.
 
-### 4. Images → PDF — shipped, QA next
-Ordered image pages, A4/Letter, portrait/landscape, contain/cover, margin controls, local PDF output.
+### 4. Images → PDF — QA-ready
+Ordered image pages, A4/Letter, portrait/landscape, contain/cover, margin controls, local PDF output. Static QA complete; real-file browser QA remains the release gate.
 
-### Next PDF candidates — only after Stage 4 QA
-1. PDF → images
-2. Merge PDFs
-3. Split/extract pages
+### Next PDF candidates — ready for prioritization after Stage 4 manual gate
+1. **PDF → images** — strongest next utility because it complements Images → PDF and can remain local-first.
+2. **Merge PDFs** — useful, but needs careful memory and dependency evaluation.
+3. **Split/extract pages** — useful companion to merge once PDF input handling is proven.
 
-Each should be evaluated for browser memory, dependency size, compatibility, and privacy behavior before implementation.
+Do not add all three at once. The recommended next implementation is **PDF → images**, after Issue #2's real-file checks are completed.
 
 ## Product principle
 
