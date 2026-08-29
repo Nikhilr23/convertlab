@@ -31,7 +31,7 @@ ConvertLab is a lightweight conversion toolkit for common image, structured-data
 - Contain/cover and margin controls
 - Local generation with jsPDF
 
-### PDF → Images — Stage 4.2 (built; QA next)
+### PDF → Images — Stage 4.2 (shipped; manually exercised)
 - One local PDF up to 30 MB and 60 pages
 - Render all pages or ranges such as `1-3,5`
 - PNG or JPG output
@@ -42,6 +42,8 @@ ConvertLab is a lightweight conversion toolkit for common image, structured-data
 - 24-million-pixel per-render guardrail
 - Clear corrupt/password-protected PDF handling
 - Local PDF parsing/rendering using PDF.js
+
+**Manual QA:** the PDF → PNG conversion path was exercised successfully in the live tool. This records the tested path only; it is not a claim of a complete browser/device matrix.
 
 ### Data tools
 - CSV → JSON and JSON → CSV
@@ -76,9 +78,9 @@ Password-protected PDFs are explicitly unsupported in this MVP. OCR, password re
 2. Real data downloads — **shipped**
 3. Batch image conversion — **shipped**
 4. Images → PDF — **shipped**
-5. PDF → Images — **built; QA next**
+5. PDF → Images — **shipped; PDF → PNG manually exercised**
 
-After Stage 4.2 QA, evaluate **Merge PDFs** separately rather than bundling merge/split into this release.
+Next candidate: evaluate **Merge PDFs** as a separate stage rather than bundling merge/split together.
 
 ## Current limitations
 
@@ -87,7 +89,7 @@ After Stage 4.2 QA, evaluate **Merge PDFs** separately rather than bundling merg
 - Password-protected PDFs are not supported.
 - Maximum PDF input is 30 MB / 60 pages.
 - Very complex PDFs can still use substantial browser memory.
-- PDF → Images has not yet been certified across a full browser/device matrix.
+- PDF → Images has not been certified across a full browser/device matrix.
 - Merge/split, Office documents, audio/video, OCR, and generative AI are not implemented.
 
 ## Product principle
