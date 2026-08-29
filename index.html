@@ -9,126 +9,18 @@
   <script defer src="script.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container nav-wrap">
-      <a class="brand" href="#top"><span class="brand-mark">CL</span><span>ConvertLab</span></a>
-      <nav>
-        <a href="#image-tools">Images</a>
-        <a href="#data-tools">Data</a>
-        <a href="#privacy">Privacy</a>
-      </nav>
-      <a class="github-link" href="https://github.com/Nikhilr23/convertlab" target="_blank" rel="noreferrer">GitHub ↗</a>
-    </div>
-  </header>
-
+  <header class="site-header"><div class="container nav-wrap"><a class="brand" href="#top"><span class="brand-mark">CL</span><span>ConvertLab</span></a><nav><a href="#image-tools">Images</a><a href="#data-tools">Data</a><a href="#roadmap">Next</a><a href="#privacy">Privacy</a></nav><a class="github-link" href="https://github.com/Nikhilr23/convertlab" target="_blank" rel="noreferrer">GitHub ↗</a></div></header>
   <main id="top">
-    <section class="hero container">
-      <div class="hero-copy">
-        <p class="eyebrow">PRIVATE · LOCAL · FAST</p>
-        <h1>Convert files without uploading them.</h1>
-        <p class="lead">ConvertLab is a browser-first toolkit for common image and data conversions. Files stay on your device whenever the browser can safely handle the job.</p>
-        <div class="hero-actions">
-          <a class="button primary" href="#image-tools">Start converting</a>
-          <a class="button secondary" href="#privacy">How privacy works</a>
-        </div>
-        <div class="trust-row"><span>✓ No account</span><span>✓ No file upload</span><span>✓ No backend</span></div>
-      </div>
-      <div class="hero-panel">
-        <div class="status">Browser processing active</div>
-        <div class="flow"><span>YOUR FILE</span><strong>→</strong><span>YOUR BROWSER</span><strong>→</strong><span>DOWNLOAD</span></div>
-        <p>Designed for lightweight conversions where local processing is practical.</p>
-      </div>
-    </section>
+    <section class="hero container"><div class="hero-copy"><p class="eyebrow">PRIVATE · LOCAL · FAST</p><h1>Convert files without uploading them.</h1><p class="lead">ConvertLab is a browser-first toolkit for common image and data conversions. Files stay on your device whenever the browser can safely handle the job.</p><div class="hero-actions"><a class="button primary" href="#image-tools">Start converting</a><a class="button secondary" href="#privacy">How privacy works</a></div><div class="trust-row"><span>✓ No account</span><span>✓ No file upload</span><span>✓ No backend</span></div></div><div class="hero-panel"><div class="status">Browser processing active</div><div class="flow"><span>YOUR FILE</span><strong>→</strong><span>YOUR BROWSER</span><strong>→</strong><span>DOWNLOAD</span></div><p>Designed for lightweight conversions where local processing is practical.</p></div></section>
 
-    <section id="image-tools" class="section container">
-      <div class="section-heading">
-        <p class="eyebrow">IMAGE TOOLS</p>
-        <h2>Image conversion and optimization</h2>
-        <p>Choose an image, select an output format and optional dimensions, then convert it locally in your browser.</p>
-      </div>
+    <section id="image-tools" class="section container"><div class="section-heading"><p class="eyebrow">IMAGE TOOLS</p><h2>Image conversion and optimization</h2><p>Choose an image, select an output format and optional dimensions, then convert it locally in your browser.</p></div><div class="tool-card"><div class="tool-grid"><label class="file-zone" for="imageInput" id="imageDropZone"><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /><span class="file-icon">⇧</span><strong>Select or drop an image</strong><small>PNG, JPG, WebP, or SVG · max 25 MB</small></label><div class="controls"><label>Output format<select id="imageFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPG</option><option value="image/webp">WebP</option></select></label><label>Width (optional)<input id="imageWidth" type="number" min="1" max="12000" placeholder="Keep original" /></label><label>Height (optional)<input id="imageHeight" type="number" min="1" max="12000" placeholder="Keep original" /></label><label class="check-label"><input id="lockAspect" type="checkbox" checked /> Lock aspect ratio</label><label>Quality<input id="imageQuality" type="range" min="0.2" max="1" step="0.05" value="0.9" /><span id="qualityValue">90%</span></label><button id="convertImageBtn" class="button primary" type="button">Convert image</button></div></div><div id="imageResult" class="result hidden" aria-live="polite"><div><strong id="imageResultName">Converted file</strong><span id="imageMeta"></span></div><a id="imageDownload" class="button secondary" download>Download</a></div><p id="imageError" class="error" aria-live="polite"></p></div></section>
 
-      <div class="tool-card">
-        <div class="tool-grid">
-          <label class="file-zone" for="imageInput">
-            <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
-            <span class="file-icon">⇧</span>
-            <strong>Select an image</strong>
-            <small>PNG, JPG, WebP, or SVG</small>
-          </label>
+    <section id="data-tools" class="section section-alt"><div class="container"><div class="section-heading"><p class="eyebrow">DATA TOOLS</p><h2>CSV ↔ JSON</h2><p>Paste lightweight structured data and convert it instantly. Everything happens on this page.</p></div><div class="data-grid"><article class="tool-card compact"><div class="tool-title"><span>CSV</span><strong>→ JSON</strong></div><textarea id="csvInput" spellcheck="false" placeholder="name,email&#10;Alex,alex@example.com&#10;Sam,sam@example.com"></textarea><button id="csvToJsonBtn" class="button primary" type="button">Convert to JSON</button><textarea id="jsonOutput" class="output" readonly placeholder="JSON output appears here"></textarea><div class="data-actions"><button id="copyJsonBtn" class="text-button" type="button">Copy JSON</button><button id="downloadJsonBtn" class="text-button" type="button">Download .json</button></div><p id="csvError" class="error" aria-live="polite"></p></article><article class="tool-card compact"><div class="tool-title"><span>JSON</span><strong>→ CSV</strong></div><textarea id="jsonInput" spellcheck="false" placeholder='[{"name":"Alex","email":"alex@example.com"}]'></textarea><button id="jsonToCsvBtn" class="button primary" type="button">Convert to CSV</button><textarea id="csvOutput" class="output" readonly placeholder="CSV output appears here"></textarea><div class="data-actions"><button id="copyCsvBtn" class="text-button" type="button">Copy CSV</button><button id="downloadCsvBtn" class="text-button" type="button">Download .csv</button></div><p id="jsonError" class="error" aria-live="polite"></p></article></div></div></section>
 
-          <div class="controls">
-            <label>Output format
-              <select id="imageFormat">
-                <option value="image/png">PNG</option>
-                <option value="image/jpeg">JPG</option>
-                <option value="image/webp">WebP</option>
-              </select>
-            </label>
-            <label>Width (optional)
-              <input id="imageWidth" type="number" min="1" placeholder="Keep original" />
-            </label>
-            <label>Height (optional)
-              <input id="imageHeight" type="number" min="1" placeholder="Keep original" />
-            </label>
-            <label>Quality
-              <input id="imageQuality" type="range" min="0.2" max="1" step="0.05" value="0.9" />
-              <span id="qualityValue">90%</span>
-            </label>
-            <button id="convertImageBtn" class="button primary" type="button">Convert image</button>
-          </div>
-        </div>
+    <section id="roadmap" class="section container"><div class="section-heading"><p class="eyebrow">NEXT FEATURE SEQUENCE</p><h2>Grow capability without losing the local-first principle.</h2><p>The sequence prioritizes improvements that make today's workflows better before adding heavier formats.</p></div><div class="feature-grid"><article><strong>01 · NOW</strong><h3>Better image workflow</h3><p>Drag-and-drop, aspect-ratio locking, file-size guardrails, and safer object URL cleanup.</p></article><article><strong>02 · NOW</strong><h3>Real data downloads</h3><p>Download converted JSON and CSV as files instead of relying only on clipboard copy.</p></article><article><strong>03 · NEXT</strong><h3>Batch image conversion</h3><p>Convert several compatible images in one session while keeping processing local.</p></article><article><strong>04 · LATER</strong><h3>PDF & image utilities</h3><p>Explore image-to-PDF and other browser-capable PDF workflows after testing browser and memory limits.</p></article></div></section>
 
-        <div id="imageResult" class="result hidden" aria-live="polite">
-          <div><strong id="imageResultName">Converted file</strong><span id="imageMeta"></span></div>
-          <a id="imageDownload" class="button secondary" download>Download</a>
-        </div>
-        <p id="imageError" class="error" aria-live="polite"></p>
-      </div>
-    </section>
-
-    <section id="data-tools" class="section section-alt">
-      <div class="container">
-        <div class="section-heading">
-          <p class="eyebrow">DATA TOOLS</p>
-          <h2>CSV ↔ JSON</h2>
-          <p>Paste lightweight structured data and convert it instantly. Everything happens on this page.</p>
-        </div>
-
-        <div class="data-grid">
-          <article class="tool-card compact">
-            <div class="tool-title"><span>CSV</span><strong>→ JSON</strong></div>
-            <textarea id="csvInput" spellcheck="false" placeholder="name,email\nAlex,alex@example.com\nSam,sam@example.com"></textarea>
-            <button id="csvToJsonBtn" class="button primary" type="button">Convert to JSON</button>
-            <textarea id="jsonOutput" class="output" readonly placeholder="JSON output appears here"></textarea>
-            <button id="copyJsonBtn" class="text-button" type="button">Copy JSON</button>
-            <p id="csvError" class="error" aria-live="polite"></p>
-          </article>
-
-          <article class="tool-card compact">
-            <div class="tool-title"><span>JSON</span><strong>→ CSV</strong></div>
-            <textarea id="jsonInput" spellcheck="false" placeholder='[{"name":"Alex","email":"alex@example.com"}]'></textarea>
-            <button id="jsonToCsvBtn" class="button primary" type="button">Convert to CSV</button>
-            <textarea id="csvOutput" class="output" readonly placeholder="CSV output appears here"></textarea>
-            <button id="copyCsvBtn" class="text-button" type="button">Copy CSV</button>
-            <p id="jsonError" class="error" aria-live="polite"></p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="privacy" class="section container">
-      <div class="section-heading">
-        <p class="eyebrow">WHY CONVERTLAB</p>
-        <h2>Privacy is part of the product.</h2>
-      </div>
-      <div class="feature-grid">
-        <article><strong>01</strong><h3>Local-first</h3><p>Supported conversions run in your browser. The current version does not send selected files to a conversion server.</p></article>
-        <article><strong>02</strong><h3>Small scope</h3><p>ConvertLab focuses on conversions browsers can perform reliably instead of pretending every file type can be handled locally.</p></article>
-        <article><strong>03</strong><h3>Transparent limits</h3><p>Complex document, audio, video, and AI generation features require different infrastructure and are intentionally outside this first version.</p></article>
-      </div>
-    </section>
+    <section id="privacy" class="section container"><div class="section-heading"><p class="eyebrow">WHY CONVERTLAB</p><h2>Privacy is part of the product.</h2></div><div class="feature-grid"><article><strong>01</strong><h3>Local-first</h3><p>Supported conversions run in your browser. The current version does not send selected files to a conversion server.</p></article><article><strong>02</strong><h3>Small scope</h3><p>ConvertLab focuses on conversions browsers can perform reliably instead of pretending every file type can be handled locally.</p></article><article><strong>03</strong><h3>Transparent limits</h3><p>Complex document, audio, video, and AI generation features require different infrastructure and are intentionally outside this version.</p></article></div></section>
   </main>
-
   <footer><div class="container footer-wrap"><span>ConvertLab · Browser-first conversion utilities</span><a href="https://github.com/Nikhilr23" target="_blank" rel="noreferrer">Built by Nikhil Reddy ↗</a></div></footer>
 </body>
 </html>
