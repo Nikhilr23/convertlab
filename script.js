@@ -1,118 +1,58 @@
 const $ = (id) => document.getElementById(id);
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const MAX_DIMENSION = 12000;
+const SUPPORTED_IMAGE_TYPES=['image/png','image/jpeg','image/webp','image/svg+xml'];
 const imageInput=$('imageInput'), imageFormat=$('imageFormat'), imageWidth=$('imageWidth'), imageHeight=$('imageHeight'), imageQuality=$('imageQuality'), qualityValue=$('qualityValue'), imageResult=$('imageResult'), imageDownload=$('imageDownload'), imageError=$('imageError'), lockAspect=$('lockAspect'), dropZone=$('imageDropZone');
+const batchInput=$('batchInput'),batchDropZone=$('batchDropZone'),batchFormat=$('batchFormat'),batchWidth=$('batchWidth'),batchHeight=$('batchHeight'),batchLockAspect=$('batchLockAspect'),batchQuality=$('batchQuality'),batchQualityValue=$('batchQualityValue'),batchResults=$('batchResults'),batchSummary=$('batchSummary'),batchError=$('batchError'),convertBatchBtn=$('convertBatchBtn'),clearBatchBtn=$('clearBatchBtn');
 let currentDownloadUrl=null;
 let sourceDimensions=null;
 let dimensionUpdate=false;
+let batchFiles=[];
+let batchDownloadUrls=[];
+let batchRunning=false;
 
 imageQuality.addEventListener('input',()=>{qualityValue.textContent=`${Math.round(Number(imageQuality.value)*100)}%`;});
+batchQuality.addEventListener('input',()=>{batchQualityValue.textContent=`${Math.round(Number(batchQuality.value)*100)}%`;});
 
-function clearImageResult(){
-  imageError.textContent='';
-  imageResult.classList.add('hidden');
-  if(currentDownloadUrl){URL.revokeObjectURL(currentDownloadUrl);currentDownloadUrl=null;}
-  imageDownload.removeAttribute('href');
-}
+function clearImageResult(){imageError.textContent='';imageResult.classList.add('hidden');if(currentDownloadUrl){URL.revokeObjectURL(currentDownloadUrl);currentDownloadUrl=null;}imageDownload.removeAttribute('href');}
+function validateImageFile(file){if(!file)return'No file selected.';if(!SUPPORTED_IMAGE_TYPES.includes(file.type))return'Unsupported image type.';if(file.size>MAX_IMAGE_BYTES)return'File exceeds the 25 MB per-image limit.';return'';}
+function sanitizeBaseName(name){return(name.replace(/\.[^.]+$/,'')||'converted-image').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').slice(0,180);}
+function outputExtension(type){return type==='image/jpeg'?'jpg':type.split('/')[1];}
 
-async function readImageDimensions(file){
-  const objectUrl=URL.createObjectURL(file);
-  try{
-    const img=new Image();
-    img.decoding='async';
-    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('The selected image could not be decoded.'));img.src=objectUrl;});
-    return {width:img.naturalWidth,height:img.naturalHeight};
-  }finally{URL.revokeObjectURL(objectUrl);}
-}
+async function loadImage(file){const objectUrl=URL.createObjectURL(file);try{const img=new Image();img.decoding='async';await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('The image could not be decoded.'));img.src=objectUrl;});return img;}finally{URL.revokeObjectURL(objectUrl);}}
+async function readImageDimensions(file){const img=await loadImage(file);return{width:img.naturalWidth,height:img.naturalHeight};}
 
-async function handleSelectedFile(file){
-  clearImageResult();
-  sourceDimensions=null;
-  if(!file)return;
-  if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)){imageError.textContent='Unsupported image type. Try PNG, JPG, WebP, or SVG.';return;}
-  if(file.size>MAX_IMAGE_BYTES){imageError.textContent='For browser stability, choose an image no larger than 25 MB.';return;}
-  document.querySelector('.file-zone strong').textContent=file.name;
-  try{sourceDimensions=await readImageDimensions(file);}catch(error){imageError.textContent=error.message||'Could not read this image.';}
-}
-
+async function handleSelectedFile(file){clearImageResult();sourceDimensions=null;if(!file)return;const validation=validateImageFile(file);if(validation){imageError.textContent=validation;return;}document.querySelector('#imageDropZone strong').textContent=file.name;try{sourceDimensions=await readImageDimensions(file);}catch(error){imageError.textContent=error.message||'Could not read this image.';}}
 imageInput.addEventListener('change',()=>handleSelectedFile(imageInput.files[0]));
-
 ['dragenter','dragover'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();event.stopPropagation();dropZone.classList.add('drag-active');}));
 ['dragleave','drop'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();event.stopPropagation();dropZone.classList.remove('drag-active');}));
-dropZone.addEventListener('drop',event=>{
-  const file=event.dataTransfer?.files?.[0];
-  if(!file)return;
-  const transfer=new DataTransfer();transfer.items.add(file);imageInput.files=transfer.files;handleSelectedFile(file);
-});
+dropZone.addEventListener('drop',event=>{const file=event.dataTransfer?.files?.[0];if(!file)return;const transfer=new DataTransfer();transfer.items.add(file);imageInput.files=transfer.files;handleSelectedFile(file);});
 
-function syncAspect(changed){
-  if(dimensionUpdate||!lockAspect.checked||!sourceDimensions)return;
-  const width=Number(imageWidth.value),height=Number(imageHeight.value);
-  dimensionUpdate=true;
-  if(changed==='width'&&width>0)imageHeight.value=Math.max(1,Math.round(width*sourceDimensions.height/sourceDimensions.width));
-  if(changed==='height'&&height>0)imageWidth.value=Math.max(1,Math.round(height*sourceDimensions.width/sourceDimensions.height));
-  dimensionUpdate=false;
-}
-imageWidth.addEventListener('input',()=>syncAspect('width'));
-imageHeight.addEventListener('input',()=>syncAspect('height'));
+function syncAspect(changed){if(dimensionUpdate||!lockAspect.checked||!sourceDimensions)return;const width=Number(imageWidth.value),height=Number(imageHeight.value);dimensionUpdate=true;if(changed==='width'&&width>0)imageHeight.value=Math.max(1,Math.round(width*sourceDimensions.height/sourceDimensions.width));if(changed==='height'&&height>0)imageWidth.value=Math.max(1,Math.round(height*sourceDimensions.width/sourceDimensions.height));dimensionUpdate=false;}
+imageWidth.addEventListener('input',()=>syncAspect('width'));imageHeight.addEventListener('input',()=>syncAspect('height'));
 
-$('convertImageBtn').addEventListener('click',async()=>{
-  clearImageResult();
-  const file=imageInput.files[0];
-  if(!file){imageError.textContent='Choose an image first.';return;}
-  if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)){imageError.textContent='Unsupported image type. Try PNG, JPG, WebP, or SVG.';return;}
-  if(file.size>MAX_IMAGE_BYTES){imageError.textContent='For browser stability, choose an image no larger than 25 MB.';return;}
-  let objectUrl=null;
-  try{
-    objectUrl=URL.createObjectURL(file);
-    const img=new Image();img.decoding='async';
-    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('The selected image could not be decoded.'));img.src=objectUrl;});
-    const widthValue=Number(imageWidth.value),heightValue=Number(imageHeight.value);
-    let requestedWidth=widthValue||img.naturalWidth;
-    let requestedHeight=heightValue||img.naturalHeight;
-    if(lockAspect.checked){
-      if(widthValue&&!heightValue)requestedHeight=Math.round(requestedWidth*img.naturalHeight/img.naturalWidth);
-      else if(heightValue&&!widthValue)requestedWidth=Math.round(requestedHeight*img.naturalWidth/img.naturalHeight);
-    }
-    if(!Number.isFinite(requestedWidth)||!Number.isFinite(requestedHeight)||requestedWidth<1||requestedHeight<1||requestedWidth>MAX_DIMENSION||requestedHeight>MAX_DIMENSION)throw new Error('Use dimensions between 1 and 12,000 pixels.');
-    const canvas=document.createElement('canvas');canvas.width=Math.round(requestedWidth);canvas.height=Math.round(requestedHeight);
-    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas processing is not available in this browser.');
-    if(imageFormat.value==='image/jpeg'){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);}
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    const blob=await new Promise(resolve=>canvas.toBlob(resolve,imageFormat.value,Number(imageQuality.value)));
-    if(!blob)throw new Error('This browser could not create the requested output format.');
-    currentDownloadUrl=URL.createObjectURL(blob);
-    const extension=imageFormat.value==='image/jpeg'?'jpg':imageFormat.value.split('/')[1];
-    const baseName=(file.name.replace(/\.[^.]+$/,'')||'converted-image').replace(/[\\/:*?"<>|]/g,'-');
-    const outputName=`${baseName}.${extension}`;
-    imageDownload.href=currentDownloadUrl;imageDownload.download=outputName;$('imageResultName').textContent=outputName;$('imageMeta').textContent=`${canvas.width} × ${canvas.height} · ${formatBytes(blob.size)}`;imageResult.classList.remove('hidden');
-  }catch(error){imageError.textContent=error instanceof Error?error.message:'Could not convert this image.';}
-  finally{if(objectUrl)URL.revokeObjectURL(objectUrl);}
-});
+function resolveDimensions(img,widthValue,heightValue,preserveAspect){let width=Number(widthValue)||img.naturalWidth;let height=Number(heightValue)||img.naturalHeight;if(preserveAspect){if(Number(widthValue)&&!Number(heightValue))height=Math.round(width*img.naturalHeight/img.naturalWidth);else if(Number(heightValue)&&!Number(widthValue))width=Math.round(height*img.naturalWidth/img.naturalHeight);else if(Number(widthValue)&&Number(heightValue)){const scale=Math.min(Number(widthValue)/img.naturalWidth,Number(heightValue)/img.naturalHeight);width=Math.max(1,Math.round(img.naturalWidth*scale));height=Math.max(1,Math.round(img.naturalHeight*scale));}}if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1||width>MAX_DIMENSION||height>MAX_DIMENSION)throw new Error('Use dimensions between 1 and 12,000 pixels.');return{width:Math.round(width),height:Math.round(height)};}
+async function convertImageFile(file,format,widthValue,heightValue,preserveAspect,quality){const validation=validateImageFile(file);if(validation)throw new Error(validation);const img=await loadImage(file);const dims=resolveDimensions(img,widthValue,heightValue,preserveAspect);const canvas=document.createElement('canvas');canvas.width=dims.width;canvas.height=dims.height;const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas processing is not available in this browser.');if(format==='image/jpeg'){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);}ctx.drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise(resolve=>canvas.toBlob(resolve,format,Number(quality)));canvas.width=1;canvas.height=1;if(!blob)throw new Error('This browser could not create the requested output format.');return{blob,width:dims.width,height:dims.height,name:`${sanitizeBaseName(file.name)}.${outputExtension(format)}`};}
+
+$('convertImageBtn').addEventListener('click',async()=>{clearImageResult();const file=imageInput.files[0];if(!file){imageError.textContent='Choose an image first.';return;}try{const result=await convertImageFile(file,imageFormat.value,imageWidth.value,imageHeight.value,lockAspect.checked,imageQuality.value);currentDownloadUrl=URL.createObjectURL(result.blob);imageDownload.href=currentDownloadUrl;imageDownload.download=result.name;$('imageResultName').textContent=result.name;$('imageMeta').textContent=`${result.width} × ${result.height} · ${formatBytes(result.blob.size)}`;imageResult.classList.remove('hidden');}catch(error){imageError.textContent=error instanceof Error?error.message:'Could not convert this image.';}});
+
+function revokeBatchUrls(){batchDownloadUrls.forEach(url=>URL.revokeObjectURL(url));batchDownloadUrls=[];}
+function renderBatchSelection(){batchResults.replaceChildren();batchError.textContent='';if(!batchFiles.length){batchSummary.textContent='No files selected.';return;}const valid=batchFiles.filter(file=>!validateImageFile(file)).length;batchSummary.textContent=`${batchFiles.length} selected · ${valid} supported · ${batchFiles.length-valid} will be skipped`;batchFiles.forEach(file=>{const row=document.createElement('div');row.className='batch-row';const info=document.createElement('div');const name=document.createElement('strong');name.textContent=file.name;const meta=document.createElement('span');const validation=validateImageFile(file);meta.textContent=validation||`${formatBytes(file.size)} · ready`;info.append(name,meta);const status=document.createElement('span');status.className=validation?'batch-status error-status':'batch-status';status.textContent=validation?'Skipped':'Ready';row.append(info,status);batchResults.appendChild(row);});}
+function setBatchFiles(files){if(batchRunning)return;revokeBatchUrls();batchFiles=Array.from(files||[]);renderBatchSelection();}
+batchInput.addEventListener('change',()=>setBatchFiles(batchInput.files));
+['dragenter','dragover'].forEach(type=>batchDropZone.addEventListener(type,event=>{event.preventDefault();event.stopPropagation();batchDropZone.classList.add('drag-active');}));
+['dragleave','drop'].forEach(type=>batchDropZone.addEventListener(type,event=>{event.preventDefault();event.stopPropagation();batchDropZone.classList.remove('drag-active');}));
+batchDropZone.addEventListener('drop',event=>{const files=event.dataTransfer?.files;if(files?.length)setBatchFiles(files);});
+clearBatchBtn.addEventListener('click',()=>{if(batchRunning)return;revokeBatchUrls();batchFiles=[];batchInput.value='';renderBatchSelection();});
+
+convertBatchBtn.addEventListener('click',async()=>{if(batchRunning)return;batchError.textContent='';if(!batchFiles.length){batchError.textContent='Choose one or more images first.';return;}const width=Number(batchWidth.value),height=Number(batchHeight.value);if((width&&(!Number.isFinite(width)||width<1||width>MAX_DIMENSION))||(height&&(!Number.isFinite(height)||height<1||height>MAX_DIMENSION))){batchError.textContent='Use batch dimensions between 1 and 12,000 pixels.';return;}batchRunning=true;convertBatchBtn.disabled=true;clearBatchBtn.disabled=true;revokeBatchUrls();batchResults.replaceChildren();let succeeded=0,failed=0,skipped=0;for(let index=0;index<batchFiles.length;index+=1){const file=batchFiles[index];const row=document.createElement('div');row.className='batch-row';const info=document.createElement('div');const name=document.createElement('strong');name.textContent=file.name;const meta=document.createElement('span');meta.textContent=`${formatBytes(file.size)} · waiting`;info.append(name,meta);const action=document.createElement('span');action.className='batch-status';action.textContent='Processing…';row.append(info,action);batchResults.appendChild(row);batchSummary.textContent=`Processing ${index+1} of ${batchFiles.length}…`;const validation=validateImageFile(file);if(validation){meta.textContent=validation;action.textContent='Skipped';action.className='batch-status error-status';skipped+=1;continue;}try{const result=await convertImageFile(file,batchFormat.value,batchWidth.value,batchHeight.value,batchLockAspect.checked,batchQuality.value);const url=URL.createObjectURL(result.blob);batchDownloadUrls.push(url);meta.textContent=`${result.width} × ${result.height} · ${formatBytes(result.blob.size)}`;const download=document.createElement('a');download.className='button secondary batch-download';download.href=url;download.download=result.name;download.textContent='Download';row.replaceChild(download,action);succeeded+=1;}catch(error){meta.textContent=error instanceof Error?error.message:'Conversion failed.';action.textContent='Failed';action.className='batch-status error-status';failed+=1;}await new Promise(resolve=>setTimeout(resolve,0));}batchSummary.textContent=`Done · ${succeeded} converted · ${failed} failed · ${skipped} skipped`;batchRunning=false;convertBatchBtn.disabled=false;clearBatchBtn.disabled=false;});
 
 function formatBytes(bytes){if(bytes<1024)return`${bytes} B`;if(bytes<1024*1024)return`${(bytes/1024).toFixed(1)} KB`;return`${(bytes/(1024*1024)).toFixed(2)} MB`;}
-
-function parseCsv(text){
-  const rows=[];let row=[],field='',quoted=false;
-  for(let i=0;i<text.length;i+=1){const char=text[i],next=text[i+1];if(char==='"'&&quoted&&next==='"'){field+='"';i+=1;}else if(char==='"'){quoted=!quoted;}else if(char===','&&!quoted){row.push(field);field='';}else if((char==='\n'||char==='\r')&&!quoted){if(char==='\r'&&next==='\n')i+=1;row.push(field);if(row.some(value=>value.length>0))rows.push(row);row=[];field='';}else field+=char;}
-  if(quoted)throw new Error('CSV contains an unclosed quoted field.');row.push(field);if(row.some(value=>value.length>0))rows.push(row);return rows;
-}
-
-$('csvToJsonBtn').addEventListener('click',()=>{
-  $('csvError').textContent='';$('jsonOutput').value='';
-  try{const source=$('csvInput').value;if(source.length>1_000_000)throw new Error('Keep pasted CSV under 1 MB for this browser tool.');const rows=parseCsv(source.trim());if(rows.length<2)throw new Error('Add a header row and at least one data row.');const headers=rows[0].map(h=>h.trim());if(headers.some(h=>!h))throw new Error('Every CSV column needs a header.');if(new Set(headers).size!==headers.length)throw new Error('CSV headers must be unique.');if(rows.slice(1).some(row=>row.length>headers.length))throw new Error('A CSV row has more values than the header row.');const data=rows.slice(1).map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??''])));$('jsonOutput').value=JSON.stringify(data,null,2);}catch(error){$('csvError').textContent=error.message||'Could not parse the CSV.';}
-});
-
+function parseCsv(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i+=1){const char=text[i],next=text[i+1];if(char==='"'&&quoted&&next==='"'){field+='"';i+=1;}else if(char==='"'){quoted=!quoted;}else if(char===','&&!quoted){row.push(field);field='';}else if((char==='\n'||char==='\r')&&!quoted){if(char==='\r'&&next==='\n')i+=1;row.push(field);if(row.some(value=>value.length>0))rows.push(row);row=[];field='';}else field+=char;}if(quoted)throw new Error('CSV contains an unclosed quoted field.');row.push(field);if(row.some(value=>value.length>0))rows.push(row);return rows;}
+$('csvToJsonBtn').addEventListener('click',()=>{$('csvError').textContent='';$('jsonOutput').value='';try{const source=$('csvInput').value;if(source.length>1_000_000)throw new Error('Keep pasted CSV under 1 MB for this browser tool.');const rows=parseCsv(source.trim());if(rows.length<2)throw new Error('Add a header row and at least one data row.');const headers=rows[0].map(h=>h.trim());if(headers.some(h=>!h))throw new Error('Every CSV column needs a header.');if(new Set(headers).size!==headers.length)throw new Error('CSV headers must be unique.');if(rows.slice(1).some(row=>row.length>headers.length))throw new Error('A CSV row has more values than the header row.');const data=rows.slice(1).map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??''])));$('jsonOutput').value=JSON.stringify(data,null,2);}catch(error){$('csvError').textContent=error.message||'Could not parse the CSV.';}});
 function csvEscape(value){if(value===null||value===undefined)return'';const text=typeof value==='object'?JSON.stringify(value):String(value);return/[",\n\r]/.test(text)?`"${text.replace(/"/g,'""')}"`:text;}
-$('jsonToCsvBtn').addEventListener('click',()=>{
-  $('jsonError').textContent='';$('csvOutput').value='';
-  try{const source=$('jsonInput').value;if(source.length>1_000_000)throw new Error('Keep pasted JSON under 1 MB for this browser tool.');const parsed=JSON.parse(source);if(!Array.isArray(parsed)||parsed.length===0||parsed.some(item=>!item||Array.isArray(item)||typeof item!=='object'))throw new Error('Use a non-empty JSON array of objects.');const headers=[...new Set(parsed.flatMap(item=>Object.keys(item)))];if(!headers.length)throw new Error('JSON objects need at least one property.');const lines=[headers.map(csvEscape).join(',')];parsed.forEach(item=>lines.push(headers.map(header=>csvEscape(item[header])).join(',')));$('csvOutput').value=lines.join('\n');}catch(error){$('jsonError').textContent=error.message||'Could not parse the JSON.';}
-});
-
+$('jsonToCsvBtn').addEventListener('click',()=>{$('jsonError').textContent='';$('csvOutput').value='';try{const source=$('jsonInput').value;if(source.length>1_000_000)throw new Error('Keep pasted JSON under 1 MB for this browser tool.');const parsed=JSON.parse(source);if(!Array.isArray(parsed)||parsed.length===0||parsed.some(item=>!item||Array.isArray(item)||typeof item!=='object'))throw new Error('Use a non-empty JSON array of objects.');const headers=[...new Set(parsed.flatMap(item=>Object.keys(item)))];if(!headers.length)throw new Error('JSON objects need at least one property.');const lines=[headers.map(csvEscape).join(',')];parsed.forEach(item=>lines.push(headers.map(header=>csvEscape(item[header])).join(',')));$('csvOutput').value=lines.join('\n');}catch(error){$('jsonError').textContent=error.message||'Could not parse the JSON.';}});
 async function copyOutput(id,buttonId,defaultLabel){const value=$(id).value;if(!value)return;try{await navigator.clipboard.writeText(value);$(buttonId).textContent='Copied ✓';setTimeout(()=>{$(buttonId).textContent=defaultLabel;},1300);}catch{$(id).focus();$(id).select();$(buttonId).textContent='Select & copy';}}
 function downloadText(id,filename,type){const value=$(id).value;if(!value)return;const url=URL.createObjectURL(new Blob([value],{type}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),0);}
-$('copyJsonBtn').addEventListener('click',()=>copyOutput('jsonOutput','copyJsonBtn','Copy JSON'));
-$('copyCsvBtn').addEventListener('click',()=>copyOutput('csvOutput','copyCsvBtn','Copy CSV'));
-$('downloadJsonBtn').addEventListener('click',()=>downloadText('jsonOutput','converted-data.json','application/json;charset=utf-8'));
-$('downloadCsvBtn').addEventListener('click',()=>downloadText('csvOutput','converted-data.csv','text/csv;charset=utf-8'));
-window.addEventListener('beforeunload',()=>{if(currentDownloadUrl)URL.revokeObjectURL(currentDownloadUrl);});
+$('copyJsonBtn').addEventListener('click',()=>copyOutput('jsonOutput','copyJsonBtn','Copy JSON'));$('copyCsvBtn').addEventListener('click',()=>copyOutput('csvOutput','copyCsvBtn','Copy CSV'));$('downloadJsonBtn').addEventListener('click',()=>downloadText('jsonOutput','converted-data.json','application/json;charset=utf-8'));$('downloadCsvBtn').addEventListener('click',()=>downloadText('csvOutput','converted-data.csv','text/csv;charset=utf-8'));
+window.addEventListener('beforeunload',()=>{if(currentDownloadUrl)URL.revokeObjectURL(currentDownloadUrl);revokeBatchUrls();});
